@@ -1,0 +1,56 @@
+<html>
+	<head>
+		<title>Welcome to Aalgro</title>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<link href='http://fonts.googleapis.com/css?family=Devonshire' rel='stylesheet' type='text/css'>
+		<style type="text/css">
+		body {
+			font-family: 'Devonshire', cursive;
+		}
+		.mainWrapper {
+			width: 800px;
+			margin: 0 auto;
+		}
+		.message {
+			color: #139DE3;
+		    font-size: 38px;
+		    width: 460px;
+		    margin: 0 auto;
+		}
+		</style>
+		<script type="text/javascript">
+			var opacity = 100;
+			var diff = 1;
+			var trav = 1;
+			$(document).ready(function() {
+				animate();
+			});
+			function animate() {
+				if(trav==0) {
+					opacity += diff;
+				}
+				if(trav==1) {
+					opacity -= diff;
+				}
+				if(opacity==50) {
+					trav = 0;
+				}
+				if(opacity==100) {
+					trav = 1;
+				}
+				effect = opacity/100;
+				$('.message').animate({opacity: effect}, 8, animate);
+			}
+		</script>
+	</head>
+	<body>
+		<div class="mainWrapper">
+			<div class="header">
+				<img src="img/logo.png">
+			</div>
+			<div class="message">
+				<p>Website is currently under development</p>
+			</div>
+		</div>
+	</body>
+</html>
