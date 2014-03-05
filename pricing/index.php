@@ -43,6 +43,7 @@
 <link rel="stylesheet" type="text/css" href="css/items.css" />
 <link rel="stylesheet" type="text/css" href="css/suppliers.css" />
 <link rel="stylesheet" type="text/css" href="css/pricing.css" />
+<link rel="stylesheet" type="text/css" href="css/clients.css" />
 <link rel="stylesheet" type="text/css" href="css/font-awesome.css" />
 <link rel="stylesheet" type="text/css" href="css/jquery.jscrollpane.css" />
 </head>
@@ -59,6 +60,7 @@
 			<a id="items-tab" href="#/items">Items</a>
 			<a id="suppliers-tab" href="#/suppliers">Suppliers</a>
 			<a id="pricing-tab" href="#/pricing">Pricing</a>
+			<a id="clients-tab" href="#/clients">Clients</a>
 		</div>
 		<div id="contents"></div>
 	</script>
@@ -689,6 +691,329 @@
 	</script>
 <!-- PRICING : END -->
 
+<!-- CLIENTS : START -->
+<!-- JS in clients.js -->
+	<script type="text/template" id="clients-view">
+		<div id="clients-tabs">
+			<a id="existing-clients" class="client-category-tab" href="#/clients/existing">Existing</a>
+			<a id="prospective-clients" class="client-category-tab" href="#/clients/prospective">Prospective</a>
+		</div>
+		<div id="client-category-contents"></div>
+	</script>
+
+	<script type="text/template" id="clients-loader-view">
+		<div id="all-clients-loader"><img src="img/486.gif" /></div>
+	</script>
+
+	<script type="text/template" id="clients-category-view">
+		<% if(clients.length == 0) { %>
+		<div id="no-clients">No clients found</div>
+		<table id="all-clients-table" style="display:none" data-category-id="<%= category_id %>">
+			<tr>
+				<th class="client-header-name">Name</th>
+				<th class="client-header-edit"></th>
+			</tr>
+		</table>
+		<% } else { %>
+		<div id="no-clients" style="display:none">No clients found</div>
+		<table id="all-clients-table" data-category-id="<%= category_id %>">
+			<tr>
+				<th class="client-header-name">Name</th>
+				<th class="clientclients-header-edit"></th>
+			</tr>
+			<% _.each(clients, function (client, index) { %>
+			<tr class="client-row" id="client-<%= client['client_id'] %>" data-client-id="<%= client['client_id'] %>">
+				<td class="client-header-name"><%= client['client_name'] %></td>
+				<td class="client-header-edit">
+					<div class="client-header-edit-buttons">
+						<span class="client-delete-button"><i class="fa fa-trash-o fa-lg" title="Delete Client"></i></span>
+						<span class="client-items-button"><i class="fa fa-leaf fa-lg" title="Show Client Items"></i></span>
+						<span class="client-info-button"><i class="fa fa-info fa-lg" title="Show Client Information"></i></span>
+					</div>
+					<img style="display:none" class="client-local-loader" src="img/486.gif" />
+					<div class="client-confirm-delete">
+						<div class="client-confirm-delete-header">Delete Client ?</div>
+						<div class="client-confirm-delete-controls">
+							<div class="client-confirm-delete-yes">Yes</div>
+							<div class="client-confirm-delete-no">No</div>
+						</div>
+					</div>
+				</td>
+			</tr>
+			<% }); %>
+		</table>
+		<% } %>
+		<div id="add-save-client">
+			<div id="add-client" data-in-progress="0">Add Client</div>
+			<div id="cancel-new-client">Cancel</div>
+			<div id="save-new-client" data-in-progress="0">Save</div>
+		</div>
+		<div id="add-save-client-error">Errors were found</div>
+	</script>
+
+	<script type="text/template" id="new-client-view">
+		<div class="new-client-container">
+			<div class="new-client-form-container">
+				<div class="new-client-form-input">
+					<label>Name *</label>
+					<input type="text" class="new-client-name" />
+				</div>
+				<div class="new-client-form-input">
+					<label>Phone</label>
+					<input type="text" class="new-client-phone" />
+				</div>
+				<div class="new-client-form-input">
+					<label>Email</label>
+					<input type="text" class="new-client-email" />
+				</div>
+				<div class="new-client-form-input">
+					<label>Address</label>
+					<textarea class="new-client-address"></textarea>
+				</div>
+				<div class="new-client-items-container">
+					<div class="new-client-items-header">Items *</div>
+					<div class="new-client-items-options">
+						<div class="new-client-items-option">
+							<input type="radio" name="new-client-items-option" value="new" />Create New List
+						</div>
+						<div class="new-client-items-option">
+							<input type="radio" name="new-client-items-option" value="existing" <% print(Object.keys(existing_clients).length == 0 ? 'disabled' : ''); %> />Import from Existing Client
+							<select id="new-client-existing-clients">
+								<option value="-1">-</option>
+							<%
+							var html = '';
+							for(var i in existing_clients) {
+								html += '<option value="' + i + '">' + existing_clients[i] + '</option>';
+							}
+							print(html);
+							%>
+							</select>
+							<div id="new-client-items-existing-options">
+								<div><input type="radio" name="new-client-items-existing-option" value="1" />Only Items</div>
+								<div><input type="radio" name="new-client-items-existing-option" value="2" />Both Items & Discount %</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="new-client-form-error">Errors were found</div>
+			</div>
+		</div>
+	</script>
+
+	<script type="text/template" id="client-items-view">
+		<div id="client-all-items" data-client-id="<%= client_id %>">
+			<div id="client-all-items-pointer"><i class="fa fa-chevron-right fa-lg"></i></div>
+			<div id="client-items-table-container">
+				<% if(client_items.length == 0) { %>
+				<div id="no-client-items">No items found</div>
+				<table id="client-items-table" style="display:none" data-client-id="<%= client_id %>">
+					<tr>
+						<th class="client-items-header-name">Name</th>
+						<th class="client-items-header-variety">Variety</th>
+						<th class="client-items-header-unit">Unit</th>
+						<th class="client-items-header-discount">Discount</th>
+						<th class="client-items-header-price">Price</th>
+						<th class="client-items-header-price-category">Price Type</th>
+						<th class="client-items-header-edit"></th>
+					</tr>
+				</table>
+				<% } else { %>
+				<div id="no-client-items" style="display:none">No items found</div>
+				<table id="client-items-table" data-client-id="<%= client_id %>">
+					<tr>
+						<th class="client-items-header-name">Name</th>
+						<th class="client-items-header-variety">Variety</th>
+						<th class="client-items-header-unit">Unit</th>
+						<th class="client-items-header-discount">Discount</th>
+						<th class="client-items-header-price">Price</th>
+						<th class="client-items-header-price-category">Price Type</th>
+						<th class="client-items-header-edit"></th>
+					</tr>
+					<% 
+					/* For all client items */
+					for(var i in client_items) { 
+						var item_rowspan = 0,               // Item rowspan holder [ An item can have many varieties so we need to span rows in the table ]
+							this_variety_count,             // Count of an item variety [ An item variety can have many units associated with it ]
+							item_varieties_num = [],        // Holds the rowspan of item varieties; eg [2, 0 , 2, 0] => There are 2 varieties each containing 2 units. We need to rowspan both the varieties
+							item_varieties_info = [];       // Holds each item variety id and its unit [ {item_variety_id: 101, unit_id: 101}, {item_variety_id: 102, unit_id: 102} ]
+						
+						/* For all varieties in the item */
+						for(var j in client_items[i]) {
+							// To find the total varieties of the item and the item rowspan
+							this_variety_count = Object.keys(client_items[i][j]).length;
+							item_rowspan += this_variety_count;
+
+							// For each item variety unit push item variety id and the unit
+							for(var k in client_items[i][j]) {
+								item_varieties_info.push({ item_variety_id: j, unit_id: k });
+							}
+
+							// Find the rowspan of the variety; Refer to "item_varieties_num"
+							item_varieties_num.push(this_variety_count);
+							for(var k=0; k<this_variety_count-1; k++) {
+								item_varieties_num.push(0);
+							}
+						}
+
+						// For all total no of varieties in the item
+						for(var j=0; j<item_rowspan; j++) {
+							print('<tr class="client-item-row">');
+							
+							// The first one can only rowspan the item
+							if(j == 0) {
+								print('<td class="client-items-header-name" rowspan="' + item_rowspan + '">' + CLIENTS_ALL_ITEMS[i].item_name + '</td>');
+							}
+
+							// If rowspan is allowed for the item variety
+							if(item_varieties_num[j] != 0) {
+								print('<td class="client-items-header-variety" rowspan="' + item_varieties_num[j] + '">' + CLIENTS_ALL_ITEMS[i]['item_varieties'][item_varieties_info[j]['item_variety_id']] + '</td>');
+							}
+							
+							print('<td class="client-items-header-unit">' + CLIENTS_ALL_ITEMS[i].item_units[item_varieties_info[j]['unit_id']] + '</td>');
+							print('<td class="client-items-header-discount"><input type="text" defaultValue="' + client_items[i][item_varieties_info[j]['item_variety_id']][item_varieties_info[j]['unit_id']]['discount'] + '" value="' + client_items[i][item_varieties_info[j]['item_variety_id']][item_varieties_info[j]['unit_id']]['discount'] + '" /><div class="client-item-parameter-error">Error</div></td>');
+
+							var item_price = client_items[i][item_varieties_info[j]['item_variety_id']][item_varieties_info[j]['unit_id']]['item_price'];
+							print('<td class="client-items-header-price">');
+							if(item_price != '') {
+								print(	'<div class="client-items-client-price">' + (item_price-(client_items[i][item_varieties_info[j]['item_variety_id']][item_varieties_info[j]['unit_id']]['discount']*item_price/100)).toFixed(1) + '</div>' + 
+										'<div class="client-items-org-price-container">' + 
+											'<div class="client-items-org-price">' + item_price + '</div>' +
+											'<div class="client-items-price-ts timeago" title="' + new Date(client_items[i][item_varieties_info[j]['item_variety_id']][item_varieties_info[j]['unit_id']]['price_ts']*1000).toISOString() + '"></div>' +
+										'</div>');
+							}
+							print('</td>');
+
+							print('<td class="client-items-header-price-category">' + CLIENTS_ALL_PRICE_CATEGORIES[client_items[i][item_varieties_info[j]['item_variety_id']][item_varieties_info[j]['unit_id']]['price_category_id']] + '</td>');
+							
+							print('<td class="client-items-header-edit" data-item-id="' + i + '" data-item-variety-id="' + item_varieties_info[j]['item_variety_id'] + '" data-unit-id="' + item_varieties_info[j]['unit_id'] + '" data-price-category-id="' + client_items[i][item_varieties_info[j]['item_variety_id']][item_varieties_info[j]['unit_id']]['price_category_id'] + '" id="client-item-' + i + '-' + item_varieties_info[j]['item_variety_id'] + '-' + item_varieties_info[j]['unit_id'] + '-' + client_items[i][item_varieties_info[j]['item_variety_id']][item_varieties_info[j]['unit_id']]['price_category_id'] + '">' + 
+									'<i class="fa fa-trash-o fa-lg client-item-row-delete" title="Delete Item"></i>' + 
+									'<img style="display:none" class="client-item-local-loader" src="img/486.gif" />' +
+									'<div class="client-item-confirm-delete">' + 
+										'<div class="client-item-confirm-delete-header">Delete ?</div>' + 
+										'<div class="client-item-confirm-delete-controls">' + 
+											'<div class="client-item-confirm-delete-yes">Yes</div>' + 
+											'<div class="client-item-confirm-delete-no">No</div>' +
+										'</div>' + 
+									'</div>' +
+								'</td>');
+							
+							print('</tr>');
+						}
+					} %>
+				</table>
+				<% } %>
+			</div>
+			<div id="client-items-main-error">Error</div>
+			<div id="save-new-client-items" data-in-progress="0">Save Items</div>
+			<div id="add-save-more-client-items">
+				<div id="add-more-client-items" data-counter="1">Add Item</div>
+				<div id="client-communicate">
+					<div id="client-communicate-button">Communicate</div>
+					<div id="client-communicate-options" style="display:none">
+						<div><input type="checkbox" checked disabled id="client-communicate-save" />Save Prices</div>
+						<div><input type="checkbox" id="client-communicate-email" />Send Email</div>
+						<div><input type="checkbox" id="client-communicate-sms" />Send SMS</div>
+					</div>
+					<div id="client-communicate-proceed" data-in-progress="0" style="display:none">Proceed</div>
+				</div>
+				<div id="client-items-download-excel-container">
+					<div id="client-items-download-excel" data-in-progress="0">Download Excel</div>
+				</div>
+				<div id="close-client-items"><i class="fa fa-times fa-lg" title="Close"></i></div>
+			</div>
+			<div id="client-item-suggestions"></div>
+			<div id="save-client-items-discounts">Save Discounts</div>
+		</div>
+	</script>
+
+	<script type="text/template" id="client-new-item-view">
+		<tr class="client-new-item-row client-item-row" id="<%= 'new-client-item-' + temp_id %>">
+			<td class="client-items-header-name">
+				<div class="client-new-item-name-container">
+					<input type="text" data-valid="0" />
+					<div class="client-item-parameter-error">Error</div>
+				</div>
+			</td>
+			<td class="client-items-header-variety"></td>
+			<td class="client-items-header-unit"></td>
+			<td class="client-items-header-discount"></td>
+			<td class="client-items-header-price"></td>
+			<td class="client-items-header-price-category"></td>
+			<td class="client-items-header-edit"><i class="client-new-item-delete fa fa-trash-o fa-lg" title="Delete Item"></i></td>
+		</tr>
+	</script>
+
+	<script type="text/template" id="client-saved-items-view">
+		<% _.each(items, function (item) { 
+			if($("#client-item-" + item['item_id'] + '-' + item['item_variety_id'] + '-' + item['unit_id'] + '-' + item['price_category_id']).length == 1) {
+				var parent_row = $("#client-item-" + item['item_id'] + '-' + item['item_variety_id'] + '-' + item['unit_id'] + '-' + item['price_category_id']).closest('tr');
+
+				parent_row.find(".client-items-header-price input[type='text']").val(item['item_price']).attr('defaultValue', item['item_price']);
+			}
+			else { %>
+				<tr class="client-item-row">
+					<td class="client-items-header-name"><%= CLIENTS_ALL_ITEMS[item['item_id']].item_name %></td>
+					<td class="client-items-header-variety"><%= CLIENTS_ALL_ITEMS[item['item_id']]['item_varieties'][item['item_variety_id']] %></td>
+					<td class="client-items-header-units"><%= CLIENTS_ALL_ITEMS[item['item_id']]['item_units'][item['unit_id']] %></td>
+					<td class="client-items-header-discount"><input type="text" defaultValue="<%= item['discount'] %>" value="<%= item['discount'] %>" /><div class="client-item-parameter-error">Error</div></td>
+					
+					<td class="client-items-header-price">
+					<%
+					if(item['item_price'] != '') {
+						print(	'<div class="client-items-client-price">' + (item['item_price']-(item['discount']*item['item_price']/100)).toFixed(1) + '</div>' + 
+								'<div class="client-items-org-price-container">' + 
+									'<div class="client-items-org-price">' + item['item_price'] + '</div>' +
+									'<div class="client-items-price-ts timeago" title="' + new Date(item['price_ts']*1000).toISOString() + '"></div>' +
+								'</div>');
+					}
+					%>
+					</td>
+
+					<td class="client-items-header-price-category"><%= CLIENTS_ALL_PRICE_CATEGORIES[item['price_category_id']] %></td>
+					<td class="client-items-header-edit" data-item-id="<%= item['item_id'] %>" data-item-variety-id="<%= item['item_variety_id'] %>" data-unit-id="<%= item['unit_id'] %>" data-price-category-id="<%= item['price_category_id'] %>" id="<%= 'client-item-' + item['item_id'] + '-' + item['item_variety_id'] + '-' + item['unit_id'] + '-' + item['price_category_id'] %>">
+						<i class="fa fa-trash-o fa-lg client-item-row-delete" title="Delete Item">
+						<img style="display:none" class="client-item-local-loader" src="img/486.gif" />
+						<div class="client-item-confirm-delete">
+							<div class="client-item-confirm-delete-header">Delete ?</div> 
+							<div class="client-item-confirm-delete-controls">
+								<div class="client-item-confirm-delete-yes">Yes</div> 
+								<div class="client-item-confirm-delete-no">No</div>
+							</div> 
+						</div>
+					</td>
+				</tr>
+			<% } 
+		}); %>
+	</script>
+
+	<script type="text/template" id="client-info-view">
+		<div id="client-info-container" data-client-id="<%= client['client_id'] %>">
+			<div id="client-info-pointer"><i class="fa fa-chevron-right fa-lg"></i></div>
+			<div id="client-info">
+				<div class="client-info-form-input">
+					<label>Name</label>
+					<input type="text" class="client-info-name" defaultValue="<%= client['client_name'] %>" value="<%= client['client_name'] %>" />
+				</div>
+				<div class="client-info-form-input">
+					<label>Phone</label>
+					<input type="text" class="client-info-phone" defaultValue="<%= client['client_phone'] %>" value="<%= client['client_phone'] %>" />
+				</div>
+				<div class="client-info-form-input">
+					<label>Email</label>
+					<input type="text" class="client-info-email" defaultValue="<%= client['client_email'] %>" value="<%= client['client_email'] %>" />
+				</div>
+				<div class="client-info-form-input">
+					<label>Address</label>
+					<textarea class="client-info-address"  defaultValue="<%= client['client_address'] %>"><%= client['client_address'] %></textarea>
+				</div>
+				<div id="save-client-info-container">
+					<div id="save-client-info" data-in-progress="0">Save</div>
+					<div id="client-info-error">Error</div>
+				</div>
+			</div>
+	</script>
+<!-- CLIENTS : END -->
+
 <script type="text/javascript" src="js/lib/jquery-2.0.3.min.js"></script>
 <script type="text/javascript" src="js/lib/underscore-1.5.1.min.js"></script>
 <script type="text/javascript" src="js/lib/backbone-1.0.0.min.js"></script>
@@ -698,6 +1023,7 @@
 <script type="text/javascript" src="js/items.js"></script>
 <script type="text/javascript" src="js/suppliers.js"></script>
 <script type="text/javascript" src="js/pricing.js"></script>
+<script type="text/javascript" src="js/clients.js"></script>
 <script type="text/javascript" src="js/index.js"></script>
 
 </body>

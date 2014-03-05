@@ -492,7 +492,7 @@ var SupplierItemsView = Backbone.View.extend({
 		$("#supplier-all-items").css({ left: this.options['offset'].left, top: this.options['offset'].top });
 		$("#add-save-more-supplier-items").css('left', ($('#supplier-items-table-container').position().left-1) + 'px');
 		$("#close-supplier-items").css('margin-right', ($('#supplier-items-table-container').position().left-1) + 'px');
-		$("#save-supplier-items-prices").css({ 'left': (this.options['offset'].left + 30 + (120 + 120 + 70 + 80 + 100) + 30 + 30) + 'px', top: this.options['offset'].top });
+		$("#save-supplier-items-prices").css({ 'left': (this.options['offset'].left + 30 + (120 + 120 + 70 + 80 + 100) + 30) + 'px', top: this.options['offset'].top });
 	},
 	events: {
 		'keyup .supplier-item-row .supplier-items-header-price input[type="text"]': 'editPrices',                  // Keyup event on existing item's price textbox
@@ -578,7 +578,7 @@ var SupplierItemsView = Backbone.View.extend({
 					for(var i=0; i<response.data.length; i++) {
 						var parent_row = $("#supplier-item-" + response.data[i]['item_id'] + '-' + response.data[i]['item_variety_id'] + '-' + response.data[i]['unit_id']).closest('tr');
 
-						parent_row.find(".supplier-items-header-price input[type='text']").val(response.data[i]['item_price']).attr('defaultValue', response.data[i]['item_price']);
+						parent_row.find(".supplier-items-header-price input[type='text']").val(response.data[i]['item_price']).attr('defaultValue', response.data[i]['item_price']).removeClass('supplier-item-edited-price');
 					}
 				}
 			}

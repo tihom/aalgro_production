@@ -20,7 +20,9 @@ var Router = Backbone.Router.extend({
 		'items/:query': 'itemsFromCategory',
 		'suppliers': 'suppliers',
 		'suppliers/:query': 'suppliersFromCategory',
-		'pricing': 'pricing'
+		'pricing': 'pricing',
+		'clients': 'clients',
+		'clients/:query': 'clientsFromCategory'
 	},
 	index: function () {
 		index_view.render();
@@ -90,7 +92,29 @@ var Router = Backbone.Router.extend({
 
 		pricing_loader_view = new PricingLoaderView();
 		pricing_loader_view.render();
-	}
+	},
+	clients: function () {
+		this.index();
+
+		clients_view = new ClientsView();
+		clients_view.render();
+	},
+	clientsFromCategory: function (query) { 
+		this.clients();
+
+		var category_id;
+		switch(query) {
+			case 'existing':
+				category_id = 101;
+				break;
+
+			case 'prospective':
+				category_id = 102;
+		}
+		
+		clients_loader_view = new ClientsLoaderView({ category_name: query, category_id: category_id });
+		clients_loader_view.render();
+	},
 });
 
 var router = new Router();

@@ -9,6 +9,8 @@ require_once('pricing.php');
 require_once('logon.php');
 require_once('createExcel.php');
 require_once('sessionValidator.php');
+require_once('clients.php');
+require_once('clientExcel.php');
 
 @session_start();
 try {
@@ -18,6 +20,8 @@ try {
 		$pricing_ob = new pricing($db_ob);
 		$login_ob = new login($db_ob);
 		$excelOb = new createPricingExcel();
+		$clientsOb = new clients($db_ob);
+		$clientExcelOb = new clientExcel($db_ob);
 
 		if(isset($_REQUEST['command'])) {
 			if($_REQUEST['command'] == 'Login') {
@@ -190,6 +194,89 @@ try {
 							$data = $_POST['data'];
 							$result = $excelOb->createExcelSheet($data);
 							echo json_encode(array('error'=>0, 'data'=>$result));
+							break;
+
+						case 'GetClientsByCategory':
+							$categoryId = $_REQUEST['category_id'];
+							$result = $clientsOb->getClientsByCategory($categoryId);
+							echo json_encode(array('error' => 0, 'data' => $result));
+							break;
+
+						case 'DeleteClient': 
+							$clientId = $_REQUEST['client_id'];
+							$result = $clientsOb->deleteClient($clientId);
+							echo json_encode(array('error' => $result));
+							break;
+
+						case 'AddClient':
+							$data = $_REQUEST['data'];
+							$categoryId = $_REQUEST['category_id'];
+							$result = $clientsOb->addClient($data, $categoryId);
+							echo $result;
+							break;
+
+						case 'GetClientInfo':
+							$clientId = $_REQUEST['client_id'];
+							$response = $clientsOb->getClientInfo($clientId);
+							echo $response;
+							break;
+
+						case 'EditClientInfo':
+							$clientInfo = $_REQUEST['client_info'];
+							$response = $clientsOb->editClientInfo($clientInfo);
+							echo $response;
+							break;
+
+						case 'GetClientItems':
+							$clientId = $_REQUEST['client_id'];
+							$items = $items_ob->getAllItems();
+							$priceCategories = $clientsOb->getPriceCategories();
+							$clientItems = $clientsOb->getClientItems($clientId);
+
+							echo json_encode(array('error' => 0, 'data' => array('items' => $items, 'price_categories' => $priceCategories, 'client_items' => $clientItems)));
+							break;
+
+						case 'DeleteClientItem':
+							$itemDetails = array();
+							$itemDetails['item_id'] = $_REQUEST['item_id'];
+							$itemDetails['unit_id'] = $_REQUEST['unit_id'];
+							$itemDetails['item_variety_id'] = $_REQUEST['item_variety_id'];
+							$itemDetails['price_category_id'] = $_REQUEST['price_category_id'];
+							$clientId = $_REQUEST['client_id'];
+
+							$result = $clientsOb->deleteClientItem($clientId, $itemDetails);
+							echo $result;
+							break;
+
+						case 'AddClientItems':
+							$clientId = $_REQUEST['client_id'];
+							$newItems = $_REQUEST['new_items'];
+
+							$result = $clientsOb->addClientItems($clientId, $newItems);
+
+							echo $result;
+							break;
+
+						case 'EditClientItemsDiscounts':
+							$itemData = $_REQUEST['items'];
+							$clientId = $_REQUEST['client_id'];
+							$result = $clientsOb->editClientItems($itemData, $clientId);
+
+							echo json_encode(array('error' => 0, 'data' => $result));
+							break;
+
+						case 'ClientCommunication':
+							$clientId = $_REQUEST['client_id'];
+							$items = $items_ob->getAllItems();
+							$response = $clientExcelOb->mailExcel($clientId, $items);
+							echo json_encode(array('error' => 0));
+							break;
+
+						case 'ClientItemsDownloadExcel':
+							$clientId = $_REQUEST['client_id'];
+							$items = $items_ob->getAllItems();
+							$response = $clientExcelOb->getExcel($clientId, $items);
+							echo json_encode(array('error' => 0, 'data' => array('name' => $response)));
 							break;
 					}
 					
